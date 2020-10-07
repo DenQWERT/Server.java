@@ -1,5 +1,5 @@
 //package server;
-// Верисия V2.00 от 07.10.2020 года от SDA
+// Верисия V2.01 от 07.10.2020 года от SDA
 
 import java.io.*;
 import java.net.ServerSocket;
@@ -17,6 +17,7 @@ public class Server {
     static ArrayList<Socket> clients = new ArrayList<>();
     static ArrayList<String> userNames = new ArrayList<>();
     static ArrayList<Integer> userID = new ArrayList<>();
+    static ArrayList<String> nameID = new ArrayList<>();
     //static ArrayList<String> old10Messages = new ArrayList<>();
     static final int N10=100; // - число старых сообщений выводимых новому пользователю в при подключении к чату в териминал
     static String [] old10Messages = new String[N10];
@@ -79,7 +80,7 @@ public class Server {
                     public void run() {
                         String userName = null;
                         try {
-                            String strTemp = "01/" + userID.get(id-1).toString() + "/Wed Jan 01 12:00:00 GMT+00:00 2020/Сервер/01/6/7/  Вас приветствует сервер Чата. Весия сервера - V2.00 от 07.10.2020./45";
+                            String strTemp = "01/" + userID.get(id-1).toString() + "/Wed Jan 01 12:00:00 GMT+00:00 2020/Сервер/01/6/7/  Вас приветствует сервер Чата. Весия сервера - V2.01 от 07.10.2020./45";
                             out.writeUTF(Pack.paked(strTemp,Sh));
                             Date data = new Date();
                             data.getTime();
@@ -96,12 +97,13 @@ public class Server {
                             userName = P.name;
                             System.out.println("Имя регистрирующегося пользователя = " + P.name);
                             userNames.add(userName);
+                            nameID.add(userName);
 
                             //System.out.println("Клиент " + userName + " подключился к чату");
                             for (int i=(N10-10); i<=N10-1;i++){
                                 if (old10Messages[i].length()>0) {
                                     out.writeUTF(Pack.paked(old10Messages[i], Sh));
-                                    TimeUnit.MILLISECONDS.sleep(100);
+                                    TimeUnit.MILLISECONDS.sleep(150);
                                     System.out.println("Отправляем пользователю " + i + " " + old10Messages[i]);
                                 }
                                 //System.out.println("НЕ Отправляем пользователю " + i + " " + old10Messages[i]);
@@ -133,12 +135,44 @@ public class Server {
                                             //System.out.println("НЕ Отправляем пользователю " + i + " " + old10Messages[i]);
                                         }
                                         break;
+                                    case 11 : // - Выдаем клиенту список кто сейчас в чате
+                                        String spisokAll="Список пользователей чата:";
+                                        for (String name : userNames) {
+                                            spisokAll = spisokAll + " " + name;
+                                        }
+                                        //Date data = new Date();
+                                        data.getTime();
+                                        out.writeUTF(Pack.paked("03/" + userID.get(id-1).toString() +"/"+ data.toString() +"/" + userName + "/01/6/7/" + spisokAll +"/11", Sh));
+                                        System.out.println("Список запрошенных пользователей " + spisokAll);
+                                        break;
+                                    case 14: // - Выдаем клиенту список всех кто был в чате
+                                        spisokAll="Список всех кто был в чате: ";
+                                        /*for (String name : nameID) {
+                                            spisokAll = spisokAll + " " + name;
+                                        }
+                                        data.getTime();
+                                        out.writeUTF(Pack.paked("03/" + userID.get(id-1).toString() +"/"+ data.toString() +"/" + userName + "/01/6/7/" + spisokAll +"/11", Sh));
+                                        System.out.println("Список всех кто был в чате " + spisokAll);*/
+                                        for (int i=0; i<=N10-1;i++){
+                                            if (old10Messages[i].length()>0) {
+                                                Protocol P2 = new Protocol();
+                                                P2.RazborProtocol(old10Messages[i]);
+                                                if (spisokAll.indexOf(P2.name)<0)
+                                                {spisokAll = spisokAll  + P2.name + ", ";}
+                                            }
+                                        }
+                                        spisokAll = spisokAll.substring(0, spisokAll.length() - 2);
+                                        spisokAll = spisokAll+".";
+                                        data.getTime();
+                                        out.writeUTF(Pack.paked("03/" + userID.get(id-1).toString() +"/"+ data.toString() +"/" + userName + "/01/6/7/" + spisokAll +"/11", Sh));
+                                        System.out.println("Список запрошенных пользователей " + spisokAll);
+                                        break;
                                 }
                             }
                         } catch (IOException | ParseException | InterruptedException e) {
                             try {
                                 if (userName.length()>0) {
-                                    broadcastMsg("Клиент " + userName + " отключился", userName, userID.get(id - 1));
+                                    broadcastMsg(/*"Клиент " + userName + */" отключился", userName, userID.get(id - 1));
                                 }
                             } catch (IOException ioException) {
                                 ioException.printStackTrace();
