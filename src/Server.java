@@ -1,5 +1,5 @@
 //package server;
-// Верисия от 05.10.2020 года от SDA
+// Верисия V2.00 от 07.10.2020 года от SDA
 
 import java.io.*;
 import java.net.ServerSocket;
@@ -79,7 +79,11 @@ public class Server {
                     public void run() {
                         String userName = null;
                         try {
-                            String strTemp = "01/" + userID.get(id-1).toString() + "/Wed Jan 01 12:00:00 GMT+00:00 2020/Сервер/01/6/7/   Введите свое имя:/45";
+                            String strTemp = "01/" + userID.get(id-1).toString() + "/Wed Jan 01 12:00:00 GMT+00:00 2020/Сервер/01/6/7/  Вас приветствует сервер Чата. Весия сервера - V2.00 от 07.10.2020./45";
+                            out.writeUTF(Pack.paked(strTemp,Sh));
+                            Date data = new Date();
+                            data.getTime();
+                            strTemp = "02/" + userID.get(id-1).toString() +"/"+ data.toString() +"/" + "Сервер/01/6/7/  Введите свое имя:/45";
                             out.writeUTF(Pack.paked(strTemp,Sh));
                             System.out.println(strTemp);
                             //old10Messages.add(strTemp);
