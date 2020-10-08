@@ -80,7 +80,7 @@ public class Server {
                     public void run() {
                         String userName = null;
                         try {
-                            String strTemp = "01/" + userID.get(id-1).toString() + "/Wed Jan 01 12:00:00 GMT+00:00 2020/Сервер/01/6/7/  Вас приветствует сервер Чата. Весия сервера - V2.01 от 07.10.2020./45";
+                            String strTemp = "01/" + userID.get(id-1).toString() + "/Wed Jan 01 12:00:00 GMT+00:00 2020/Сервер/01/6/7/  Вас приветствует сервер Чата. Версия сервера - V2.01 от 07.10.2020./45";
                             out.writeUTF(Pack.paked(strTemp,Sh));
                             Date data = new Date();
                             data.getTime();
