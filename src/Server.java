@@ -1,5 +1,5 @@
 //package server;
-// Верисия V2.03 от 09.10.2020 года от SDA
+// Верисия V2.04 от 10.10.2020 года от SDA
 
 import java.io.*;
 import java.net.ServerSocket;
@@ -80,7 +80,7 @@ public class Server {
                     public void run() {
                         String userName = null;
                         try {
-                            String strTemp = "01/" + userID.get(id-1).toString() + "/Wed Jan 01 12:00:00 GMT+00:00 2020/Сервер/01/6/7/  Вас приветствует сервер Чата. Версия сервера - V2.03 от 09.10.2020./45";
+                            String strTemp = "01/" + userID.get(id-1).toString() + "/Wed Jan 01 12:00:00 GMT+00:00 2020/Сервер/01/6/7/  Вас приветствует сервер Чата. Версия сервера - V2.04 от 10.10.2020./45";
                             out.writeUTF(Pack.paked(strTemp,Sh));
                             Date data = new Date();
                             data.getTime();
@@ -128,7 +128,7 @@ public class Server {
                                             if ((i>=(N10-2-CountMessages))&&(old10Messages[i].length()>0)) {
                                                 out.writeUTF(Pack.paked(old10Messages[i], Sh));
                                                 TimeUnit.MILLISECONDS.sleep(10);
-                                                System.out.println("Отправляем пользователю "+ P1.name + " запрошенный архив "+ i + " " + old10Messages[i]);
+                                                System.out.println("Отправляем пользователю "+ P.name + " запрошенный архив "+ i + " " + old10Messages[i]);
                                             }
                                             //toFile.writeObject(old10Messages);
                                             //toFile.close();
@@ -136,7 +136,7 @@ public class Server {
                                         }
                                         break;
                                     case 11 : // - Выдаем клиенту список кто сейчас в чате
-                                        String spisokAll="Список пользователей чата:";
+                                        String spisokAll="Сейчас в чате онлайн:";
                                         for (String name : userNames) {
                                             spisokAll = spisokAll + " " + name;
                                         }
@@ -216,19 +216,20 @@ public class Server {
             System.out.println(stringOut);
 
             //System.out.println("До    " + Arrays.toString(old10Messages));
-            for (int i=0; i<N10-1;i++){ old10Messages[i]=old10Messages[i+1]; }// - смещаем все сообщения влево на одно
-            old10Messages[N10-1]=stringOut.toString();// - добавляем справа в последнюю позицию текущее поледнее сообщение
+            if (old10Messages[N10-1].compareTo(stringOut.toString())!=0) { // - Повторно те же строки не записываем в архив от других клиентов
+                for (int i = 0; i < N10 - 1; i++) {
+                    old10Messages[i] = old10Messages[i + 1];
+                }// - смещаем все сообщения влево на одно
+                old10Messages[N10 - 1] = stringOut.toString();// - добавляем справа в последнюю позицию текущее поледнее сообщение
+                ObjectOutputStream toFile;
+                toFile = new ObjectOutputStream( new FileOutputStream("client_messages.out"));
+                toFile.writeObject(old10Messages);
+                toFile.close();
+            }
             //System.out.println("После" + Arrays.toString(old10Messages));
             //old10Messages.add(stringOut);
             //stringOut = Pack.paked(stringOut, 2);
             out.writeUTF(Pack.paked(stringOut, Sh));
-
-            ObjectOutputStream toFile;
-            toFile = new ObjectOutputStream( new FileOutputStream("client_messages.out"));
-
-            toFile.writeObject(old10Messages);
-            toFile.close();
-
 
         }
     }
