@@ -1,5 +1,5 @@
 //package server;
-// Верисия V2.01 от 07.10.2020 года от SDA
+// Верисия V2.03 от 09.10.2020 года от SDA
 
 import java.io.*;
 import java.net.ServerSocket;
@@ -80,7 +80,7 @@ public class Server {
                     public void run() {
                         String userName = null;
                         try {
-                            String strTemp = "01/" + userID.get(id-1).toString() + "/Wed Jan 01 12:00:00 GMT+00:00 2020/Сервер/01/6/7/  Вас приветствует сервер Чата. Версия сервера - V2.01 от 07.10.2020./45";
+                            String strTemp = "01/" + userID.get(id-1).toString() + "/Wed Jan 01 12:00:00 GMT+00:00 2020/Сервер/01/6/7/  Вас приветствует сервер Чата. Версия сервера - V2.03 от 09.10.2020./45";
                             out.writeUTF(Pack.paked(strTemp,Sh));
                             Date data = new Date();
                             data.getTime();
@@ -92,7 +92,7 @@ public class Server {
                             String s = in.readUTF();
                             System.out.println("Принята от клиента зашифрованная строка =" + s);
                             s = Pack.unpaked(s,Sh);
-                            System.out.println("Принята от клиента расшифрованная строка =" + s);
+                            System.out.println("Расшифрованная строка от клиента =" + s);
                             P.RazborProtocol(s);
                             userName = P.name;
                             System.out.println("Имя регистрирующегося пользователя = " + P.name);
@@ -103,7 +103,7 @@ public class Server {
                             for (int i=(N10-10); i<=N10-1;i++){
                                 if (old10Messages[i].length()>0) {
                                     out.writeUTF(Pack.paked(old10Messages[i], Sh));
-                                    TimeUnit.MILLISECONDS.sleep(150);
+                                    TimeUnit.MILLISECONDS.sleep(10);
                                     System.out.println("Отправляем пользователю " + i + " " + old10Messages[i]);
                                 }
                                 //System.out.println("НЕ Отправляем пользователю " + i + " " + old10Messages[i]);
@@ -127,7 +127,7 @@ public class Server {
                                         for (int i=0; i<=N10-1;i++){
                                             if ((i>=(N10-2-CountMessages))&&(old10Messages[i].length()>0)) {
                                                 out.writeUTF(Pack.paked(old10Messages[i], Sh));
-                                                TimeUnit.MILLISECONDS.sleep(150);
+                                                TimeUnit.MILLISECONDS.sleep(10);
                                                 System.out.println("Отправляем пользователю "+ P1.name + " запрошенный архив "+ i + " " + old10Messages[i]);
                                             }
                                             //toFile.writeObject(old10Messages);
