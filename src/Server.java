@@ -1,5 +1,5 @@
 //package server;
-// Верисия V2.04 от 10.10.2020 года от SDA
+// Верисия V3.20 от 29.11.2020 года от SDA
 
 import java.io.*;
 import java.net.ServerSocket;
@@ -10,6 +10,8 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.IntStream;
+import java.io.File;
+
 
 
 
@@ -24,43 +26,28 @@ public class Server {
     static int Sh = 2;  // Sh = 2 - шифруем  Sh=0 не шифруем
 //===================== Обьекты для Сеарилизации ===================================================
     // Идея стырена отсюда => https://habr.com/ru/post/431524/
-    /*public static ObjectOutputStream toFile;
-    static {
-        try {
-            toFile = new ObjectOutputStream( new FileOutputStream("client_messages.out"));
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }*/
-
-    public static ObjectInputStream inFile;
-    static {
-        try {
-            inFile = new ObjectInputStream( new FileInputStream("client_messages.out"));
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
 
     public Server() throws IOException {
     }
 //===================== Обьекты для Сеарилизации ===================================================
     public static void main(String[] args) throws IOException, ClassNotFoundException {
         new Pack();
-        /*old10Messages[15]="5555555556666666666666666667777777777-77777777777776666666666665555555555555";
-        old10Messages[95]="7777777777-7777777777777";
-        toFile.writeObject(old10Messages);
-        toFile.close();*/
-
-        //System.out.println("Выводим объект  old10Messages[15] = " + old10Messages[15]);
 
         // - Массиву 10 последних сообщений приваиваем пустые значения
         IntStream.range(0, (N10 - 0)).forEach(i -> old10Messages[i] = "");
 
-        old10Messages = (String[]) inFile.readObject();
-        inFile.close();
+
+        File file = new File("client_messages.out");
+        if (file.exists()&&(file.length()>0)) {
+            ObjectInputStream inFile;
+            inFile = new ObjectInputStream(new FileInputStream(file));
+            old10Messages = (String[]) inFile.readObject();
+            inFile.close();
+        }
+        else {file.createNewFile();}
+
         for (int i = 0; i < N10; i++) {
-            System.out.println("Выводим сериализованные сообщения из архива old10Messages[" + i + "]=" + old10Messages[i]);
+            if (old10Messages[i].length()>0) { System.out.println("Выводим сериализованные сообщения из архива old10Messages[" + i + "]=" + old10Messages[i]); }
         }
 //========================================================================
 
@@ -74,17 +61,17 @@ public class Server {
                 userID.add(id);
                 DataInputStream in = new DataInputStream(socket.getInputStream());
                 DataOutputStream out = new DataOutputStream(socket.getOutputStream());
-                System.out.println("Клиент подключился");
-                Thread thread = new Thread(new Runnable() {
+                System.out.println("Клиент № " + id + " подключился");
+                Thread ServerToClientMessagesThread = new Thread(new Runnable() {
                     @Override
                     public void run() {
                         String userName = null;
                         try {
-                            String strTemp = "01/" + userID.get(id-1).toString() + "/Wed Jan 01 12:00:00 GMT+00:00 2020/Сервер/01/6/7/  Вас приветствует сервер Чата. Версия сервера - V2.04 от 10.10.2020./45";
+                            String strTemp = "01/" + userID.get(id-1).toString() + "/Wed Jan 01 12:00:00 GMT+00:00 2020/Сервер/01/6/7/  Вас приветствует сервер Чата. Я версия сервера - V3.20 от 29.11.2020./45";
                             out.writeUTF(Pack.paked(strTemp,Sh));
                             Date data = new Date();
                             data.getTime();
-                            strTemp = "02/" + userID.get(id-1).toString() +"/"+ data.toString() +"/" + "Сервер/01/6/7/  Введите свое имя:/45";
+                            strTemp = "01/" + userID.get(id-1).toString() +"/"+ data.toString() +"/" + "Сервер/01/6/7/  Введите свое имя:/45";
                             out.writeUTF(Pack.paked(strTemp,Sh));
                             System.out.println(strTemp);
                             //old10Messages.add(strTemp);
@@ -94,31 +81,54 @@ public class Server {
                             s = Pack.unpaked(s,Sh);
                             System.out.println("Расшифрованная строка от клиента =" + s);
                             P.RazborProtocol(s);
+
                             userName = P.name;
                             System.out.println("Имя регистрирующегося пользователя = " + P.name);
+                            System.out.println("Цвет регистрирующегося пользователя = " + P.color);
+
+                            strTemp = "01/" + userID.get(id-1).toString() +"/"+ data.toString() +"/" + "Сервер/01/6/7/  Ваше имя - " + P.name + "/45";
+                            out.writeUTF(Pack.paked(strTemp,Sh));
+
                             userNames.add(userName);
                             nameID.add(userName);
 
                             //System.out.println("Клиент " + userName + " подключился к чату");
-                            for (int i=(N10-10); i<=N10-1;i++){
-                                if (old10Messages[i].length()>0) {
-                                    out.writeUTF(Pack.paked(old10Messages[i], Sh));
-                                    TimeUnit.MILLISECONDS.sleep(10);
-                                    System.out.println("Отправляем пользователю " + i + " " + old10Messages[i]);
+                            if (P.type!=15) { // - Отправляем старые сообщения только при первичном подключении. При вторичных восстановлениях соединени ниче не отправляем.
+                                for (int i = (N10 - 10); i <= N10 - 1; i++) {
+                                    if (old10Messages[i].length() > 0) {
+                                        out.writeUTF(Pack.paked(old10Messages[i], Sh));
+                                        TimeUnit.MILLISECONDS.sleep(10);
+                                        System.out.println("Отправляем пользователю " + i + " " + old10Messages[i]);
+                                    }
+                                    //System.out.println("НЕ Отправляем пользователю " + i + " " + old10Messages[i]);
                                 }
-                                //System.out.println("НЕ Отправляем пользователю " + i + " " + old10Messages[i]);
                             }
-                            strTemp = "" + userName + " в чате";
-                            broadcastMsg(strTemp, "Сервер:",userID.get(id-1));
+                            if (P.type!=15) { // - Отправить всем сообщение о подключении нового клиента,
+                                              // если это не повторное соединение.
+                                strTemp = "" + userName + " в чате";
+                                broadcastMsg(strTemp, "Сервер:", userID.get(id - 1), P.color);
+                            }
                             while (true) {
                                 Protocol P1 = new Protocol();
                                 P1.RazborProtocol(Pack.unpaked(in.readUTF(),Sh));
                                 String str = P1.message;
                                 System.out.println(userName + " прислал сообщение: " + str + " Тип сообщения = " + P1.type);// отсюда надо удалить все что до ##
                                 switch (P1.type){ //=== -  Разборщик сообщений клиентов ===================================
+                                    case 04: // - Клиент сам отключается от сервера.
+                                        System.out.println("Клиент сам отключеется - " + P1.message);
+                                        clients.remove(socket);
+                                        userNames.remove(userName);
+                                        try {     socket.close();
+                                        } catch (IOException ioException) {
+                                            ioException.printStackTrace();
+                                        }
+                                        break;
+                                    case 15 : // ======= Запрос на повторное воссоединение клиента с сервером====================
+                                        System.out.println("Принят запрос на повторное соединение от клиента P1.message = " + P1.message + "P.name =  " + P.name);
+                                        break;
                                     case 02 :  // ====== Приняли от клиента обычное сообщение и рассылаем его на всех остальных клиентов
                                         userName =  P.name;
-                                        broadcastMsg(str, userName, userID.get(id-1));
+                                        broadcastMsg(str, userName, userID.get(id-1), P1.color);
                                         break;
                                     case 13 : // ==== Засылаем клиенту сколько он попросил сообщений ( CountMessages )
                                         int CountMessages = Integer.parseInt(P1.message);
@@ -142,7 +152,7 @@ public class Server {
                                         }
                                         //Date data = new Date();
                                         data.getTime();
-                                        out.writeUTF(Pack.paked("03/" + userID.get(id-1).toString() +"/"+ data.toString() +"/" + userName + "/01/6/7/" + spisokAll +"/11", Sh));
+                                        out.writeUTF(Pack.paked("03/" + userID.get(id-1).toString() +"/"+ data.toString() +"/" + userName + "/02/6/7/" + spisokAll +"/11", Sh));
                                         System.out.println("Список запрошенных пользователей " + spisokAll);
                                         break;
                                     case 14: // - Выдаем клиенту список всех кто был в чате
@@ -151,40 +161,51 @@ public class Server {
                                             spisokAll = spisokAll + " " + name;
                                         }
                                         data.getTime();
-                                        out.writeUTF(Pack.paked("03/" + userID.get(id-1).toString() +"/"+ data.toString() +"/" + userName + "/01/6/7/" + spisokAll +"/11", Sh));
+                                        out.writeUTF(Pack.paked("03/" + userID.get(id-1).toString() +"/"+ data.toString() +"/" + userName + "/02/6/7/" + spisokAll +"/11", Sh));
                                         System.out.println("Список всех кто был в чате " + spisokAll);*/
                                         for (int i=0; i<=N10-1;i++){
                                             if (old10Messages[i].length()>0) {
                                                 Protocol P2 = new Protocol();
                                                 P2.RazborProtocol(old10Messages[i]);
-                                                if (spisokAll.indexOf(P2.name)<0)
-                                                {spisokAll = spisokAll  + P2.name + ", ";}
+                                                if ((spisokAll.indexOf(P2.name)<0)&&(P2.name.compareTo("Сервер")!=1)&&(P2.name.compareTo("Сервер:")!=1)) // - Если текущего имени в списке еще нет, то добавить его к списку
+                                                {   String sp2name =  P2.name;
+                                                    sp2name = sp2name.replace(",",""); // - удаляем случайные запятые(служебный символ) в именах
+                                                    sp2name = sp2name.replace("#",""); // - удаляем случайные #(служебный символ) в именах
+                                                    sp2name = sp2name.replace(":","");
+                                                    //sp2name = sp2name.replace("Сервер","");
+                                                    spisokAll = spisokAll  + "  " + P2.idUser + "-#-" + sp2name + ", ";}
                                             }
                                         }
                                         spisokAll = spisokAll.substring(0, spisokAll.length() - 2);
-                                        spisokAll = spisokAll+".";
+                                        spisokAll = spisokAll+",";
                                         data.getTime();
-                                        out.writeUTF(Pack.paked("03/" + userID.get(id-1).toString() +"/"+ data.toString() +"/" + userName + "/01/6/7/" + spisokAll +"/11", Sh));
+                                        out.writeUTF(Pack.paked("14/" + userID.get(id-1).toString() +"/"+ data.toString() +"/" + userName + "/01/6/7/" + spisokAll +"/11", Sh));
                                         System.out.println("Список запрошенных пользователей " + spisokAll);
                                         break;
+
                                 }
                             }
                         } catch (IOException | ParseException | InterruptedException e) {
-                            try {
-                                if (userName.length()>0) {
-                                    broadcastMsg(/*"Клиент " + userName + */" отключился", userName, userID.get(id - 1));
-                                }
-                            } catch (IOException ioException) {
-                                ioException.printStackTrace();
+                            if (userName.length()>0) {
+                                ////// broadcastMsg(/*"Клиент " + userName + */" отключился", userName, userID.get(id - 1));
+                                int a = 5;
                             }
-                            System.out.println("Клиент " + userName + " отключился");
+                            System.out.println("Клиент " + userName + " отключился"); // - сам отключился
+                            try {
+                                clients.remove(socket);
+                                userNames.remove(userName);
+                                socket.close();
+                            } catch (IOException exception) {
+                                exception.printStackTrace();
+                            }
+
                         } finally {
                             try {
                                 clients.remove(socket);
                                 userNames.remove(userName);
                                 socket.close();
 
-                                broadcastMsg("Кл. " + userName + " отключился", "Сервер", userID.get(id-1));
+                                ///// broadcastMsg("Кл. " + userName + " отключился", "Сервер", userID.get(id-1));
                             } catch (IOException exception) {
                                 exception.printStackTrace();
                             }
@@ -197,14 +218,14 @@ public class Server {
                     //        e.printStackTrace();
                         }
                     });
-                thread.start();
+                ServerToClientMessagesThread.start();
             }
         } catch (IOException ex) {
             System.out.println("Нет подключенных клиентов");
         }
     }
 
-    public static void broadcastMsg(String str, String userName, int id) throws IOException {
+    public static void broadcastMsg(String str, String userName, int id, int userColor) throws IOException {
         DataOutputStream out;
         for (Socket socket : clients) {
             out = new DataOutputStream(socket.getOutputStream());
@@ -212,7 +233,7 @@ public class Server {
             String stringOut = str;
             Date data = new Date();
             data.getTime();
-            stringOut = "03/" + userID.get(id-1).toString() +"/"+ data.toString() +"/" + userName + "/01/6/7/" + stringOut +"/60";
+            stringOut = "03/" + userID.get(id-1).toString() +"/"+ data.toString() +"/" + userName + "/" + userColor + "/6/7/" + stringOut +"/60";
             System.out.println(stringOut);
 
             //System.out.println("До    " + Arrays.toString(old10Messages));
